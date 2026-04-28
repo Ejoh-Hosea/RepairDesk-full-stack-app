@@ -2,11 +2,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../../features/auth/authSlice.js";
 
-const navLinks = [
-  { path: "/", label: "Dashboard" },
-  { path: "/repairs", label: "Repairs" },
-];
-
 export default function Navbar({ onAddRepair }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -16,6 +11,19 @@ export default function Navbar({ onAddRepair }) {
   const handleLogout = async () => {
     await dispatch(logout());
     navigate("/login");
+  };
+
+  // Users link only shown to admins
+  const navLinks = [
+    { path: "/", label: "Dashboard" },
+    { path: "/repairs", label: "Repairs" },
+    ...(user?.role === "admin" ? [{ path: "/users", label: "Users" }] : []),
+  ];
+
+  // Exact match for dashboard, starts-with for others
+  const isActive = (path) => {
+    if (path === "/") return pathname === "/";
+    return pathname.startsWith(path);
   };
 
   return (
@@ -38,7 +46,7 @@ export default function Navbar({ onAddRepair }) {
               key={path}
               onClick={() => navigate(path)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 ${
-                pathname === path
+                isActive(path)
                   ? "bg-accent/15 text-accent"
                   : "text-gray-500 hover:text-gray-300 hover:bg-surface-hover"
               }`}
@@ -49,7 +57,7 @@ export default function Navbar({ onAddRepair }) {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
-          {/* Quick add button */}
+          {/* Quick add repair button */}
           <button
             onClick={onAddRepair}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-black text-sm font-semibold rounded-lg hover:bg-amber-400 active:scale-95 transition-all"
@@ -58,14 +66,18 @@ export default function Navbar({ onAddRepair }) {
             Add Repair
           </button>
 
-          {/* User menu */}
+          {/* User avatar + role + sign out */}
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-xs font-semibold text-accent uppercase">
               {user?.username?.[0] ?? "U"}
             </div>
+            <div className="hidden sm:flex flex-col leading-none">
+              <span className="text-xs text-gray-300">{user?.username}</span>
+              <span className="text-xs text-gray-600">{user?.role}</span>
+            </div>
             <button
               onClick={handleLogout}
-              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-300 transition-colors ml-1"
             >
               Sign out
             </button>
