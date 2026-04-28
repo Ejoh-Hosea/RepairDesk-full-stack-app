@@ -1,0 +1,95 @@
+name: Deploy to Render
+
+# ─── TRIGGER ───────────────────────────────────────────────────────────────
+# Manual only — go to GitHub → Actions → "Deploy to Render" → "Run workflow"
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+      reason:
+        description: "Reason for deploy (optional, shows in log)"
+        required: false
+        default: "Manual deploy"
+
+# ─── JOBS ──────────────────────────────────────────────────────────────────
+jobs:
+  deploy:
+    name: Trigger Render Deploy
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      # 1. Log who triggered this and why
+      - name: Log deploy info
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  Deploying to: ${{ inputs.environment }}"
+          echo "  Triggered by: ${{ github.actor }}"
+          echo "  Reason:       ${{ inputs.reason }}"
+          echo "  Commit:       ${{ github.sha }}"
+          echo "  Branch:       ${{ github.ref_name }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      # 2. Checkout to verify the branch is clean (optional but good practice)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 3. Hit Render's deploy hook URL — Render will pull latest code and redeploy
+      #    RENDER_DEPLOY_HOOK_URL is stored in GitHub → Settings → Secrets
+      - name: Trigger Render deploy hook
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+
+          echo "Render response status: $RESPONSE"
+
+          if [ "$RESPONSE" -ne 200 ] && [ "$RESPONSE" -ne 201 ]; then
+            echo "❌ Deploy hook failed with status $RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Deploy triggered successfully"
+
+      # 4. Wait for deploy to complete by polling the health endpoint
+      #    Render typically takes 2–4 minutes for a full deploy
+      - name: Wait for deploy to be healthy
+        run: |
+          echo "Waiting for service to come online..."
+          MAX_ATTEMPTS=24    # 24 × 15s = 6 minutes max wait
+          ATTEMPT=0
+
+          until [ $ATTEMPT -ge $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 10 \
+              "${{ secrets.RENDER_SERVICE_URL }}/api/health" || echo "000")
+            
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS — HTTP $STATUS"
+            
+            if [ "$STATUS" -eq 200 ]; then
+              echo "✅ Service is healthy!"
+              break
+            fi
+            
+            if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+              echo "❌ Service did not become healthy in time"
+              exit 1
+            fi
+            
+            sleep 15
+          done
+
+      # 5. Final confirmation
+      - name: Deploy complete
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  ✅ Deploy complete!"
+          echo "  URL: ${{ secrets.RENDER_SERVICE_URL }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

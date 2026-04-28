@@ -1,0 +1,337 @@
+# RepairDesk — Backend API Test Suite
+# Requires VS Code extension: "REST Client" by Huachao Mao
+# Install: Ctrl+Shift+X → search "REST Client"
+#
+# HOW TO USE:
+#  1. Seed the DB first:  cd server && npm run seed
+#  2. Start backend:      cd server && npm run dev  (or npm run dev from root)
+#  3. Open this file in VS Code
+#  4. Click "Send Request" above any block
+#  5. Run TOP TO BOTTOM — login first to get the token
+#
+# After running the Login request (step 1), copy the accessToken value
+# from the response and paste it into @token below.
+
+@baseUrl = http://localhost:5000/api
+@token   = PASTE_ACCESS_TOKEN_HERE_AFTER_LOGIN
+
+# After running "Create a repair" (step 9), paste the _id here:
+@repairId = PASTE_REPAIR_ID_HERE
+
+# After running "Get all users" (step 24), paste a non-admin user _id here:
+@userId = PASTE_USER_ID_HERE
+
+###############################################################################
+# HEALTH CHECK
+###############################################################################
+
+### Health check — should return { status: "ok" }
+GET http://localhost:5000/api/health
+
+###############################################################################
+# AUTH
+###############################################################################
+
+### 1. Login — COPY the accessToken from the response into @token above
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+###
+
+### 2. Get current user
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+###
+
+### 3. Refresh access token (uses httpOnly cookie set by login)
+POST {{baseUrl}}/auth/refresh
+
+###
+
+### 4. Logout
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{token}}
+
+###############################################################################
+# REPAIRS — CRUD
+###############################################################################
+
+### 5. Get all repairs (paginated)
+GET {{baseUrl}}/repairs
+Authorization: Bearer {{token}}
+
+###
+
+### 6. Get repairs — filter by status
+GET {{baseUrl}}/repairs?status=received&page=1&limit=10
+Authorization: Bearer {{token}}
+
+###
+
+### 7. Get repairs — filter by in-progress
+GET {{baseUrl}}/repairs?status=in-progress
+Authorization: Bearer {{token}}
+
+###
+
+### 8. Search repairs by phone model or issue
+GET {{baseUrl}}/repairs?search=iphone
+Authorization: Bearer {{token}}
+
+###
+
+### 9. Create a repair — COPY the _id from response into @repairId above
+# @name createRepair
+POST {{baseUrl}}/repairs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerName": "Test Customer",
+  "phoneModel": "iPhone 15 Pro",
+  "issue": "Cracked screen",
+  "cost": 45.00,
+  "price": 120.00
+}
+
+###
+
+### 10. Get repair by ID
+GET {{baseUrl}}/repairs/{{repairId}}
+Authorization: Bearer {{token}}
+
+###
+
+### 11. Update repair status → in-progress
+PUT {{baseUrl}}/repairs/{{repairId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "in-progress"
+}
+
+###
+
+### 12. Update repair status → done
+PUT {{baseUrl}}/repairs/{{repairId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "done"
+}
+
+###
+
+### 13. Update repair fields (price, notes)
+PUT {{baseUrl}}/repairs/{{repairId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerName": "Updated Customer",
+  "price": 135.00,
+  "notes": "Needed extra adhesive"
+}
+
+###
+
+### 14. Delete a repair
+DELETE {{baseUrl}}/repairs/{{repairId}}
+Authorization: Bearer {{token}}
+
+###############################################################################
+# DASHBOARD
+###############################################################################
+
+### 15. Dashboard stats (today repairs, revenue, profit, top issues)
+GET {{baseUrl}}/dashboard
+Authorization: Bearer {{token}}
+
+###
+
+### 16. Repair + revenue trends — last 7 days
+GET {{baseUrl}}/dashboard/trends
+Authorization: Bearer {{token}}
+
+###
+
+### 17. Activity feed — latest 20 events
+GET {{baseUrl}}/dashboard/activity
+Authorization: Bearer {{token}}
+
+###
+
+### 18. Activity feed — custom limit
+GET {{baseUrl}}/dashboard/activity?limit=5
+Authorization: Bearer {{token}}
+
+###############################################################################
+# USERS — admin only
+###############################################################################
+
+### 19. Get all users — COPY a non-admin _id into @userId above
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+###
+
+### 20. Create a technician user
+POST {{baseUrl}}/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "sarah_tech",
+  "password": "password123",
+  "role": "technician"
+}
+
+###
+
+### 21. Create an admin user
+POST {{baseUrl}}/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "manager_bob",
+  "password": "password123",
+  "role": "admin"
+}
+
+###
+
+### 22. Change user role → admin
+PATCH {{baseUrl}}/users/{{userId}}/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+###
+
+### 23. Change user role → technician
+PATCH {{baseUrl}}/users/{{userId}}/role
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "role": "technician"
+}
+
+###
+
+### 24. Reset user password
+PATCH {{baseUrl}}/users/{{userId}}/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newPassword": "newpassword456"
+}
+
+###
+
+### 25. Delete a user
+DELETE {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{token}}
+
+###############################################################################
+# VALIDATION & ERROR TESTS — all should return 4xx errors
+###############################################################################
+
+### 26. Create repair — missing required fields (expect 400)
+POST {{baseUrl}}/repairs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerName": "Missing Fields"
+}
+
+###
+
+### 27. Create repair — negative cost/price (expect 400)
+POST {{baseUrl}}/repairs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerName": "Bad Price",
+  "phoneModel": "iPhone X",
+  "issue": "Screen crack",
+  "cost": -10,
+  "price": -5
+}
+
+###
+
+### 28. Create user — password too short (expect 400)
+POST {{baseUrl}}/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "weakpwd",
+  "password": "abc",
+  "role": "technician"
+}
+
+###
+
+### 29. Create user — duplicate username (expect 409)
+POST {{baseUrl}}/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password123",
+  "role": "technician"
+}
+
+###
+
+### 30. Invalid repair ID format (expect 400)
+GET {{baseUrl}}/repairs/not-a-valid-id
+Authorization: Bearer {{token}}
+
+###
+
+### 31. Repair not found (expect 404)
+GET {{baseUrl}}/repairs/000000000000000000000000
+Authorization: Bearer {{token}}
+
+###
+
+### 32. No token on protected route (expect 401)
+GET {{baseUrl}}/repairs
+
+###
+
+### 33. Wrong password (expect 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "wrongpassword"
+}
+
+###
+
+### 34. Technician trying to access users route (expect 403)
+# First login as a technician account, copy that token here temporarily
+# GET {{baseUrl}}/users
+# Authorization: Bearer TECHNICIAN_TOKEN_HERE
