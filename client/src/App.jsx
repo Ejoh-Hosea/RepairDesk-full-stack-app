@@ -4,6 +4,7 @@ import AdminRoute from "./layouts/AdminRoute.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import RepairsPage from "./pages/RepairsPage.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
 import UsersPage from "./pages/UsersPage.jsx";
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route element={<ProtectedLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/repairs" element={<RepairsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route
             path="/users"
             element={

@@ -9,20 +9,20 @@ export default {
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
-        // Base surfaces
+        // All surface + accent colors point to CSS variables.
+        // Switching a theme = swapping CSS variable values on <html>.
+        // Zero component changes needed.
         surface: {
-          DEFAULT: "#0f1117",
-          card: "#161b27",
-          hover: "#1c2333",
-          border: "#252d3d",
+          DEFAULT: "var(--surface)",
+          card: "var(--surface-card)",
+          hover: "var(--surface-hover)",
+          border: "var(--surface-border)",
         },
-        // Brand accent — electric amber
         accent: {
-          DEFAULT: "#f59e0b",
-          dim: "#b45309",
-          glow: "rgba(245,158,11,0.15)",
+          DEFAULT: "var(--accent)",
+          dim: "var(--accent-dim)",
+          glow: "var(--accent-glow)",
         },
-        // Status palette
         status: {
           received: "#64748b",
           "received-bg": "rgba(100,116,139,0.15)",

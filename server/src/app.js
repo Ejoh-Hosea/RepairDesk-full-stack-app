@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.js";
 import repairRoutes from "./routes/repairs.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import userRoutes from "./routes/users.js";
+import reportsRoutes from "./routes/reports.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,6 +68,7 @@ export const createApp = () => {
   app.use("/api/repairs", repairRoutes);
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/users", userRoutes);
+  app.use("/api/reports", reportsRoutes);
 
   // Health check — useful for Render's health monitoring
   app.get("/api/health", (req, res) => {

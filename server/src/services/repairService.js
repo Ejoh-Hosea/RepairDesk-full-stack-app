@@ -20,6 +20,8 @@ const logActivity = async (action, repair, extra = {}) => {
   });
   // Invalidate dashboard cache so next request gets fresh stats
   cacheService.invalidateDashboard();
+  // Also bust reports cache — monthly numbers changed
+  cacheService.del("reports:monthly");
 };
 
 export const repairService = {

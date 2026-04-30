@@ -64,12 +64,14 @@ const repairsSlice = createSlice({
     pagination: null,
     loading: false,
     error: null,
-    // Local filter state — fast, no API call needed for filter-only changes
-    filters: { status: "", search: "" },
+    filters: { status: "", search: "", datePreset: "all" },
   },
   reducers: {
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
+    },
+    clearFilters: (state) => {
+      state.filters = { status: "", search: "", datePreset: "all" };
     },
     clearError: (state) => {
       state.error = null;
@@ -103,20 +105,67 @@ const repairsSlice = createSlice({
   },
 });
 
-export const { setFilters, clearError } = repairsSlice.actions;
+export const { setFilters, clearFilters, clearError } = repairsSlice.actions;
 
-// Selector: apply filters on client side for instant feedback
+// ── Date preset → date range ─────────────────────────────────────────────────
+const getDateRange = (preset) => {
+  const now = new Date();
+  const startOf = (d) => {
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  switch (preset) {
+    case "today": {
+      return { from: startOf(new Date()), to: null };
+    }
+    case "yesterday": {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      const start = startOf(d);
+      const end = new Date(start);
+      end.setHours(23, 59, 59, 999);
+      return { from: start, to: end };
+    }
+    case "week": {
+      const d = new Date();
+      d.setDate(d.getDate() - 6);
+      return { from: startOf(d), to: null };
+    }
+    case "month": {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: startOf(d), to: null };
+    }
+    case "last_month": {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      end.setHours(23, 59, 59, 999);
+      return { from: start, to: end };
+    }
+    default:
+      return { from: null, to: null };
+  }
+};
+
+// Selector: apply all filters client-side for instant feedback
 export const selectFilteredRepairs = (state) => {
   const { items, filters } = state.repairs;
+  const { from, to } = getDateRange(filters.datePreset);
+
   return items.filter((r) => {
     const matchStatus = !filters.status || r.status === filters.status;
+
     const search = filters.search.toLowerCase();
     const matchSearch =
       !search ||
       r.phoneModel.toLowerCase().includes(search) ||
       r.issue.toLowerCase().includes(search) ||
       r.customerName.toLowerCase().includes(search);
-    return matchStatus && matchSearch;
+
+    const created = new Date(r.createdAt);
+    const matchDate = (!from || created >= from) && (!to || created <= to);
+
+    return matchStatus && matchSearch && matchDate;
   });
 };
 
