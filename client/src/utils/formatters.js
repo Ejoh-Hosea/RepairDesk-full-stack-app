@@ -11,10 +11,18 @@ export const formatDate = (dateStr) =>
     minute: "2-digit",
   }).format(new Date(dateStr));
 
-export const formatDateShort = (dateStr) =>
-  new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
-    new Date(dateStr),
-  );
+// FIX: "2025-01-15" parsed with new Date() treats it as UTC midnight.
+// In UTC-5 that becomes Jan 14 at 7pm — one day behind.
+// Parsing parts manually forces local timezone interpretation.
+export const formatDateShort = (dateStr) => {
+  if (!dateStr) return "";
+  const [year, month, day] = String(dateStr).split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(d);
+};
 
 export const STATUS_LABELS = {
   received: "Received",

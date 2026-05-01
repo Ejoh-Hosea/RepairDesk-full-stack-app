@@ -23,7 +23,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div>
         <h1 className="text-xl font-semibold text-gray-100">Dashboard</h1>
         <p className="text-sm text-gray-600 mt-0.5">
@@ -35,7 +34,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           label="Repairs Today"
@@ -45,25 +43,24 @@ export default function DashboardPage() {
         <StatCard
           label="Pending"
           value={loading ? "…" : (stats?.pending ?? 0)}
-          sub="received + in-progress"
           icon="⏳"
+          sub="received + in-progress"
         />
         <StatCard
           label="Revenue Today"
           value={loading ? "…" : formatCurrency(stats?.today?.revenue)}
-          accent
           icon="💰"
+          accent
         />
         <StatCard
           label="Profit Today"
           value={loading ? "…" : formatCurrency(stats?.today?.profit)}
-          sub="price − cost"
           icon="📈"
           accent
+          sub="price − cost"
         />
       </div>
 
-      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-surface-card border border-surface-border rounded-xl p-5">
           <h2 className="text-sm font-medium text-gray-400 mb-4">
@@ -79,22 +76,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Top issues — spans 1 col */}
         <div className="bg-surface-card border border-surface-border rounded-xl p-5">
           <h2 className="text-sm font-medium text-gray-400 mb-4">
             Most Common Issues
           </h2>
           <TopIssues issues={stats?.topIssues} />
         </div>
-
-        {/* Activity feed — spans 2 cols */}
         <div className="lg:col-span-2 bg-surface-card border border-surface-border rounded-xl p-5">
           <h2 className="text-sm font-medium text-gray-400 mb-2">
             Recent Activity
           </h2>
-          <ActivityFeed activity={activity} />
+          <ActivityFeed activity={activity?.slice(0, 5)} />
         </div>
       </div>
     </div>

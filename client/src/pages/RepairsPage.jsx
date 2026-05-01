@@ -4,11 +4,10 @@ import {
   fetchRepairs,
   setFilters,
   clearFilters,
-  selectFilteredRepairs,
+  setPage,
+  selectPaginatedRepairs,
 } from "../features/repairs/repairsSlice.js";
 import RepairTable from "../components/repairs/RepairTable.jsx";
-
-// ─── Date preset chips ───────────────────────────────────────────────────────
 
 const DATE_PRESETS = [
   { value: "all", label: "All time" },
@@ -26,22 +25,92 @@ const STATUS_OPTS = [
   { value: "done", label: "Done" },
 ];
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+function Pagination({ currentPage, totalPages, totalCount, pageSize, onPage }) {
+  if (totalPages <= 1) return null;
+
+  const pages = [];
+  const add = (n) => {
+    if (n >= 1 && n <= totalPages && !pages.includes(n)) pages.push(n);
+  };
+  add(1);
+  add(currentPage - 1);
+  add(currentPage);
+  add(currentPage + 1);
+  add(totalPages);
+  pages.sort((a, b) => a - b);
+
+  const withGaps = [];
+  pages.forEach((p, i) => {
+    if (i > 0 && p - pages[i - 1] > 1) withGaps.push("…");
+    withGaps.push(p);
+  });
+
+  const from = (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, totalCount);
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-surface-border">
+      <p className="text-xs text-gray-600">
+        Showing{" "}
+        <span className="text-gray-400 font-medium">
+          {from}–{to}
+        </span>{" "}
+        of <span className="text-gray-400 font-medium">{totalCount}</span>{" "}
+        repairs
+      </p>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-300 hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          ‹
+        </button>
+
+        {withGaps.map((item, i) =>
+          item === "…" ? (
+            <span
+              key={`gap-${i}`}
+              className="w-8 h-8 flex items-center justify-center text-gray-600 text-xs"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={item}
+              onClick={() => onPage(item)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+                item === currentPage
+                  ? "bg-accent text-black"
+                  : "text-gray-500 hover:text-gray-300 hover:bg-surface-hover"
+              }`}
+            >
+              {item}
+            </button>
+          ),
+        )}
+
+        <button
+          onClick={() => onPage(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-300 hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function RepairsPage() {
   const dispatch = useDispatch();
   const { loading, error, filters } = useSelector((s) => s.repairs);
-  const repairs = useSelector(selectFilteredRepairs);
-  const totalLoaded = useSelector((s) => s.repairs.items.length);
+  const { repairs, totalCount, currentPage, pageSize, totalPages } =
+    useSelector(selectPaginatedRepairs);
 
   useEffect(() => {
     dispatch(fetchRepairs({ limit: 500 }));
   }, [dispatch]);
-
-  const handleSearch = (e) => dispatch(setFilters({ search: e.target.value }));
-  const handleStatus = (e) => dispatch(setFilters({ status: e.target.value }));
-  const handleDatePreset = (preset) =>
-    dispatch(setFilters({ datePreset: preset }));
 
   const hasActiveFilters =
     filters.status !== "" ||
@@ -50,17 +119,13 @@ export default function RepairsPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-gray-100">Repairs</h1>
           <p className="text-sm text-gray-600 mt-0.5">
-            {repairs.length === totalLoaded
-              ? `${repairs.length} repairs`
-              : `${repairs.length} of ${totalLoaded} repairs`}
+            {totalCount} repair{totalCount !== 1 ? "s" : ""}
           </p>
         </div>
-
         {hasActiveFilters && (
           <button
             onClick={() => dispatch(clearFilters())}
@@ -71,20 +136,17 @@ export default function RepairsPage() {
         )}
       </div>
 
-      {/* ── Filter bar ───────────────────────────────────────────── */}
       <div className="bg-surface-card border border-surface-border rounded-xl p-4 space-y-3">
-        {/* Row 1 — Search + Status */}
         <div className="flex flex-col sm:flex-row gap-2">
-          {/* Search */}
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 text-sm pointer-events-none">
               🔍
             </span>
             <input
-              className="w-full bg-surface border border-surface-border rounded-lg pl-9 pr-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-accent/60 transition-colors"
+              className="w-full bg-surface border border-surface-border rounded-lg pl-9 pr-8 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-accent/60 transition-colors"
               placeholder="Search customer, phone model or issue…"
               value={filters.search}
-              onChange={handleSearch}
+              onChange={(e) => dispatch(setFilters({ search: e.target.value }))}
             />
             {filters.search && (
               <button
@@ -95,12 +157,10 @@ export default function RepairsPage() {
               </button>
             )}
           </div>
-
-          {/* Status dropdown */}
           <select
             className="bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-accent/60 transition-colors min-w-[140px]"
             value={filters.status}
-            onChange={handleStatus}
+            onChange={(e) => dispatch(setFilters({ status: e.target.value }))}
           >
             {STATUS_OPTS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -110,7 +170,6 @@ export default function RepairsPage() {
           </select>
         </div>
 
-        {/* Row 2 — Date preset chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs text-gray-600 mr-1">Period:</span>
           {DATE_PRESETS.map((p) => {
@@ -118,7 +177,7 @@ export default function RepairsPage() {
             return (
               <button
                 key={p.value}
-                onClick={() => handleDatePreset(p.value)}
+                onClick={() => dispatch(setFilters({ datePreset: p.value }))}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-150 border ${
                   active
                     ? "bg-accent text-black border-accent"
@@ -132,7 +191,6 @@ export default function RepairsPage() {
         </div>
       </div>
 
-      {/* ── Results ──────────────────────────────────────────────── */}
       <div className="bg-surface-card border border-surface-border rounded-xl p-4 sm:p-6">
         {error ? (
           <p className="text-sm text-red-400 text-center py-8">{error}</p>
@@ -141,7 +199,16 @@ export default function RepairsPage() {
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <RepairTable repairs={repairs} />
+          <>
+            <RepairTable repairs={repairs} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              onPage={(p) => dispatch(setPage(p))}
+            />
+          </>
         )}
       </div>
     </div>

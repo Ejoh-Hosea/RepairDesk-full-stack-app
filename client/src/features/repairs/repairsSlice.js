@@ -65,13 +65,20 @@ const repairsSlice = createSlice({
     loading: false,
     error: null,
     filters: { status: "", search: "", datePreset: "all" },
+    currentPage: 1,
+    pageSize: 10,
   },
   reducers: {
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
+      state.currentPage = 1;
     },
     clearFilters: (state) => {
       state.filters = { status: "", search: "", datePreset: "all" };
+      state.currentPage = 1;
+    },
+    setPage: (state, action) => {
+      state.currentPage = action.payload;
     },
     clearError: (state) => {
       state.error = null;
@@ -93,7 +100,7 @@ const repairsSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(createRepair.fulfilled, (state, action) => {
-        state.items.unshift(action.payload); // Add to top of list
+        state.items.unshift(action.payload);
       })
       .addCase(updateRepair.fulfilled, (state, action) => {
         const idx = state.items.findIndex((r) => r._id === action.payload._id);
@@ -105,9 +112,9 @@ const repairsSlice = createSlice({
   },
 });
 
-export const { setFilters, clearFilters, clearError } = repairsSlice.actions;
+export const { setFilters, clearFilters, setPage, clearError } =
+  repairsSlice.actions;
 
-// ── Date preset → date range ─────────────────────────────────────────────────
 const getDateRange = (preset) => {
   const now = new Date();
   const startOf = (d) => {
@@ -116,9 +123,8 @@ const getDateRange = (preset) => {
   };
 
   switch (preset) {
-    case "today": {
+    case "today":
       return { from: startOf(new Date()), to: null };
-    }
     case "yesterday": {
       const d = new Date();
       d.setDate(d.getDate() - 1);
@@ -133,8 +139,10 @@ const getDateRange = (preset) => {
       return { from: startOf(d), to: null };
     }
     case "month": {
-      const d = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { from: startOf(d), to: null };
+      return {
+        from: startOf(new Date(now.getFullYear(), now.getMonth(), 1)),
+        to: null,
+      };
     }
     case "last_month": {
       const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -147,26 +155,35 @@ const getDateRange = (preset) => {
   }
 };
 
-// Selector: apply all filters client-side for instant feedback
 export const selectFilteredRepairs = (state) => {
   const { items, filters } = state.repairs;
   const { from, to } = getDateRange(filters.datePreset);
 
   return items.filter((r) => {
     const matchStatus = !filters.status || r.status === filters.status;
-
     const search = filters.search.toLowerCase();
     const matchSearch =
       !search ||
       r.phoneModel.toLowerCase().includes(search) ||
       r.issue.toLowerCase().includes(search) ||
       r.customerName.toLowerCase().includes(search);
-
     const created = new Date(r.createdAt);
     const matchDate = (!from || created >= from) && (!to || created <= to);
-
     return matchStatus && matchSearch && matchDate;
   });
+};
+
+export const selectPaginatedRepairs = (state) => {
+  const filtered = selectFilteredRepairs(state);
+  const { currentPage, pageSize } = state.repairs;
+  const start = (currentPage - 1) * pageSize;
+  return {
+    repairs: filtered.slice(start, start + pageSize),
+    totalCount: filtered.length,
+    currentPage,
+    pageSize,
+    totalPages: Math.ceil(filtered.length / pageSize),
+  };
 };
 
 export default repairsSlice.reducer;
