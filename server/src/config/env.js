@@ -13,7 +13,7 @@ export const config = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || "development",
   mongoUri: process.env.MONGO_URI, // ← PLACEHOLDER: add your MongoDB URI
-  jwtSecret: process.env.JWT_SECRET, // ← PLACEHOLDER: add a strong secret
+  jwtSecret: process.env.JWT_SECRET, // ← PLACEHOLDER: add a strong  secret
   jwtAccessExpiry: process.env.JWT_ACCESS_EXPIRY || "15m",
   jwtRefreshExpiry: process.env.JWT_REFRESH_EXPIRY || "7d",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173", // ← PLACEHOLDER: your frontend URL
