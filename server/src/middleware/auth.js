@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config/env.js";
 import { User } from "../models/User.js";
-import { AppError } from "../utils/AppError.js";
+import { AppError } from "../utils/appError.js";
 
 /**
  * Verifies JWT access token from Authorization header or cookie.
