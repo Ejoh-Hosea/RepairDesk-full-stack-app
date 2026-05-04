@@ -1,5 +1,5 @@
 import { User } from "../models/User.js";
-import { AppError } from "../utils/AppError.js";
+import { AppError } from "../utils/appError.js";
 import { generateTokens, verifyRefreshToken } from "../utils/tokenUtils.js";
 
 export const authService = {

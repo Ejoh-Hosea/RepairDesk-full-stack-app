@@ -1,6 +1,6 @@
 import { Repair, REPAIR_STATUSES } from "../models/Repair.js";
 import { ActivityLog, ACTIVITY_ACTIONS } from "../models/ActivityLog.js";
-import { AppError } from "../utils/AppError.js";
+import { AppError } from "../utils/appError.js";
 import { cacheService } from "../cache/cacheService.js";
 
 /**
