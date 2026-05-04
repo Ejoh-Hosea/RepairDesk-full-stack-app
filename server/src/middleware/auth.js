@@ -5,7 +5,7 @@ import { AppError } from "../utils/AppError.js";
 
 /**
  * Verifies JWT access token from Authorization header or cookie.
- * Attaches decoded user to req.user.
+ 
  */
 export const authenticate = async (req, res, next) => {
   try {
