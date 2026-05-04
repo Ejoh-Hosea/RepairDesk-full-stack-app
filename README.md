@@ -1,6 +1,6 @@
 # 🔧 RepairDesk
 
-A full-stack phone repair business management dashboard.
+A full-stack phone repair business management dashboard
 
 **Stack:** React · Redux Toolkit · Tailwind CSS · Node.js · Express · MongoDB · JWT Auth
 

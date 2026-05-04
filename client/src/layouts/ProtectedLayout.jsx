@@ -1,3 +1,4 @@
+//default code
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Navigate, Outlet } from "react-router-dom";
@@ -13,19 +14,16 @@ import RepairForm from "../components/repairs/RepairForm.jsx";
 
 export default function ProtectedLayout() {
   const dispatch = useDispatch();
-
-  const { isAuthenticated, bootstrapped, loading } = useSelector((s) => s.auth);
-
+  const { isAuthenticated, bootstrapped } = useSelector((s) => s.auth);
   const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // ✅ run ONLY once
+  // Try restoring session on first load (refresh token in httpOnly cookie)
   useEffect(() => {
-    dispatch(fetchMe());
-  }, [dispatch]);
+    if (!bootstrapped) dispatch(fetchMe());
+  }, [bootstrapped, dispatch]);
 
-  // ⏳ wait until auth check finishes
-  if (!bootstrapped || loading) {
+  if (!bootstrapped) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -33,14 +31,12 @@ export default function ProtectedLayout() {
     );
   }
 
-  // ❌ not authenticated → redirect
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const handleAddRepair = async (data) => {
     setCreating(true);
     await dispatch(createRepair(data));
+    // Refresh dashboard stats after new repair
     dispatch(fetchDashboardStats());
     dispatch(fetchActivity());
     setCreating(false);
@@ -84,16 +80,19 @@ export default function ProtectedLayout() {
 
 // export default function ProtectedLayout() {
 //   const dispatch = useDispatch();
-//   const { isAuthenticated, bootstrapped } = useSelector((s) => s.auth);
+
+//   const { isAuthenticated, bootstrapped, loading } = useSelector((s) => s.auth);
+
 //   const [addOpen, setAddOpen] = useState(false);
 //   const [creating, setCreating] = useState(false);
 
-//   // Try restoring session on first load (refresh token in httpOnly cookie)
+//   // ✅ run ONLY once
 //   useEffect(() => {
-//     if (!bootstrapped) dispatch(fetchMe());
-//   }, [bootstrapped, dispatch]);
+//     dispatch(fetchMe());
+//   }, [dispatch]);
 
-//   if (!bootstrapped) {
+//   // ⏳ wait until auth check finishes
+//   if (!bootstrapped || loading) {
 //     return (
 //       <div className="min-h-screen bg-surface flex items-center justify-center">
 //         <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -101,12 +100,14 @@ export default function ProtectedLayout() {
 //     );
 //   }
 
-//   if (!isAuthenticated) return <Navigate to="/login" replace />;
+//   // ❌ not authenticated → redirect
+//   if (!isAuthenticated) {
+//     return <Navigate to="/login" replace />;
+//   }
 
 //   const handleAddRepair = async (data) => {
 //     setCreating(true);
 //     await dispatch(createRepair(data));
-//     // Refresh dashboard stats after new repair
 //     dispatch(fetchDashboardStats());
 //     dispatch(fetchActivity());
 //     setCreating(false);

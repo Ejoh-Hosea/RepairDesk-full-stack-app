@@ -20,14 +20,29 @@ export const verifyRefreshToken = (token) => {
 };
 
 /**
- * Sets tokens as httpOnly cookies — more secure than localStorage.
- * Separate secrets for access vs refresh prevents token cross-use.
+ * Cookie settings differ between local dev and production AWS:
+ *
+ * Local dev:
+ *   - Frontend and API are on same origin (localhost via Vite proxy)
+ *   - sameSite: 'lax' works fine
+ *   - secure: false (no HTTPS locally)
+ *
+ * Production on AWS:
+ *   - Frontend: https://yourdomain.com (CloudFront)
+ *   - API:      https://api.yourdomain.com (ALB → ECS)
+ *   - These are DIFFERENT origins (different subdomain)
+ *   - sameSite: 'none' is required for cross-origin cookies
+ *   - secure: true is REQUIRED when sameSite is 'none'
+ *
+ * Note: Since the access token is also returned in the response body
+ * and stored in memory, the app works even if cookies are blocked.
+ * Cookies are only needed for the refresh token flow.
  */
 export const setTokenCookies = (res, accessToken, refreshToken) => {
   const cookieOptions = {
     httpOnly: true,
-    secure: config.isProduction,
-    sameSite: "strict",
+    secure: config.isProduction, // true in prod (HTTPS required)
+    sameSite: config.isProduction ? "none" : "lax", // 'none' for cross-origin in prod
   };
 
   res.cookie("accessToken", accessToken, {
@@ -38,11 +53,20 @@ export const setTokenCookies = (res, accessToken, refreshToken) => {
   res.cookie("refreshToken", refreshToken, {
     ...cookieOptions,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/api/auth/refresh", // Scoped — only sent to refresh endpoint
+    path: "/api/auth/refresh",
   });
 };
 
 export const clearTokenCookies = (res) => {
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken", { path: "/api/auth/refresh" });
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: config.isProduction,
+    sameSite: config.isProduction ? "none" : "lax",
+  });
+  res.clearCookie("refreshToken", {
+    path: "/api/auth/refresh",
+    httpOnly: true,
+    secure: config.isProduction,
+    sameSite: config.isProduction ? "none" : "lax",
+  });
 };

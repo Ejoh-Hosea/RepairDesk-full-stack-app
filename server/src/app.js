@@ -27,14 +27,20 @@ export const createApp = () => {
   );
 
   // CORS — allow our frontend origin.
-  // Set CORS_ALL_ORIGINS=true in server/.env to accept any origin — useful when
-  // testing routes independently with Postman / VS Code REST Client without the frontend.
+  // In production on AWS, CLIENT_URL = https://yourdomain.com
+  // We also allow www. variant just in case.
+  // Set CORS_ALL_ORIGINS=true locally for Postman/REST Client testing.
+  const allowedOrigins = config.corsAllOrigins
+    ? true
+    : [config.clientUrl, config.clientUrl.replace("https://", "https://www.")];
+
   app.use(
     cors({
-      origin: config.corsAllOrigins ? true : config.clientUrl,
+      origin: allowedOrigins,
       credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
+      exposedHeaders: ["set-cookie"],
     }),
   );
 
