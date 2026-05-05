@@ -21,15 +21,14 @@ export const createApp = () => {
   // Security headers
   app.use(
     helmet({
-      // Required for serving frontend from same Express instance
       contentSecurityPolicy: config.isProduction ? undefined : false,
     }),
   );
 
-  // CORS — allow our frontend origin.
-  // In production on AWS, CLIENT_URL = https://yourdomain.com
-  // We also allow www. variant just in case.
-  // Set CORS_ALL_ORIGINS=true locally for Postman/REST Client testing.
+  // CORS
+  // - Local dev:  Vite runs on :5173, API on :5000 — allow :5173
+  // - Render:     Same origin — frontend and API on same URL, cors less critical
+  // - AWS:        Frontend on yourdomain.com, API on api.yourdomain.com — allow domain
   const allowedOrigins = config.corsAllOrigins
     ? true
     : [config.clientUrl, config.clientUrl.replace("https://", "https://www.")];
@@ -44,9 +43,9 @@ export const createApp = () => {
     }),
   );
 
-  // Rate limiting — prevent brute force
+  // Rate limiting
   const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: 100,
     message: {
       success: false,
@@ -54,7 +53,6 @@ export const createApp = () => {
     },
   });
 
-  // Stricter limit on auth endpoints
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
@@ -76,7 +74,7 @@ export const createApp = () => {
   app.use("/api/users", userRoutes);
   app.use("/api/reports", reportsRoutes);
 
-  // Health check — useful for Render's health monitoring
+  // Health check
   app.get("/api/health", (req, res) => {
     res.json({
       success: true,
@@ -85,17 +83,36 @@ export const createApp = () => {
     });
   });
 
-  // Serve React frontend in production (Render deployment)
-  if (config.isProduction) {
+  // ── Static file serving ────────────────────────────────────────────────────
+  //
+  // DEPLOYMENT_TARGET controls this behaviour:
+  //
+  //   render  → Express serves the React build from client/dist/
+  //             (single service deployment — frontend + backend together)
+  //
+  //   aws     → Express serves API only. Frontend is on S3 + CloudFront.
+  //             DO NOT serve static files — the client/dist folder does not
+  //             exist inside the Docker container.
+  //
+  //   (unset) → Local development. Vite handles the frontend on :5173.
+  //             Express just serves the API on :5000.
+  //
+  if (config.deploymentTarget === "render") {
     const clientBuildPath = path.join(__dirname, "../../client/dist");
     app.use(express.static(clientBuildPath));
-    // SPA fallback — let React Router handle all non-API routes
+    // SPA fallback — React Router handles all non-API routes
     app.get("*", (req, res) => {
       res.sendFile(path.join(clientBuildPath, "index.html"));
     });
+    console.log("📦 Serving React frontend from client/dist (Render mode)");
+  } else if (config.deploymentTarget === "aws") {
+    // API only — frontend is on S3/CloudFront
+    // Do NOT add static middleware here
+    console.log("☁️  AWS mode — frontend served by S3/CloudFront");
   }
+  // else: local dev — Vite handles frontend, no action needed
 
-  // Error handlers — must be registered AFTER routes
+  // Error handlers — must be last
   app.use(notFound);
   app.use(errorHandler);
 
