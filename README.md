@@ -4,6 +4,19 @@ A full-stack phone repair business management dashboard
 
 **Stack:** React · Redux Toolkit · Tailwind CSS · Node.js · Express · MongoDB · JWT Auth
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="./screenshots/dashboard.png" width="45%" />
+  &nbsp;
+  <img src="./screenshots/repairs.png" width="45%" />
+</p>
+<p align="center">
+  <img src="./screenshots/login.png" width="45%" />
+  &nbsp;
+  <img src="./screenshots/reports.png" width="45%" />
+</p>
+
 ---
 
 ## 📚 Documentation
