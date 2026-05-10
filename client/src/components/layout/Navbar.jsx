@@ -35,7 +35,7 @@ export default function Navbar({ onAddRepair }) {
             R
           </span>
           <span className="font-semibold text-sm text-gray-100 tracking-tight">
-            RepairDesk
+            ReviveMobile
           </span>
         </div>
 

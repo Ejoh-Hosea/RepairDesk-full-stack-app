@@ -30,7 +30,7 @@ const downloadPDF = async (report) => {
   doc.setTextColor(245, 158, 11);
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("RepairDesk", 14, 14);
+  doc.text("ReviveMobile", 14, 14);
   doc.setTextColor(156, 163, 175);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -111,7 +111,7 @@ const downloadPDF = async (report) => {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(180, 180, 180);
-    doc.text(`RepairDesk Report · Page ${i} of ${pageCount}`, 105, 290, {
+    doc.text(`ReviveMobile Report · Page ${i} of ${pageCount}`, 105, 290, {
       align: "center",
     });
   }

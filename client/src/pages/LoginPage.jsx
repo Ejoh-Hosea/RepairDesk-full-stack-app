@@ -38,7 +38,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 bg-accent/10 border border-accent/30 rounded-2xl mb-4">
             <span className="text-accent font-bold text-xl">R</span>
           </div>
-          <h1 className="text-xl font-semibold text-gray-100">RepairDesk</h1>
+          <h1 className="text-xl font-semibold text-gray-100">ReviveMobile</h1>
           <p className="text-sm text-gray-600 mt-1">
             Sign in to your dashboard
           </p>
@@ -96,7 +96,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-gray-700 mt-4">
-          RepairDesk v1.0 — Phone Repair Management
+          ReviveMobile — Phone Repair Management
         </p>
       </div>
     </div>
