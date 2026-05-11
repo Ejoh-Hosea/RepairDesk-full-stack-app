@@ -2,10 +2,38 @@ import { Repair } from "../models/Repair.js";
 import { ActivityLog } from "../models/ActivityLog.js";
 import { cacheService, CACHE_KEYS } from "../cache/cacheService.js";
 
-const startOfToday = () => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+// Timezone for date grouping — set SERVER_TZ in your .env or ECS environment.
+// Defaults to America/New_York (Montreal/Eastern).
+// Without this, the server (running UTC) would count "today" wrong for local users.
+const TZ = process.env.SERVER_TZ || "America/New_York";
+
+/**
+ * Returns the UTC Date representing midnight of "today" in the shop's timezone.
+ * e.g. In UTC-4, midnight local = 04:00 UTC.
+ */
+const startOfTodayInTZ = () => {
+  const now = new Date();
+  // Format today's date string in the target timezone
+  const localDateStr = now.toLocaleDateString("en-CA", { timeZone: TZ }); // 'YYYY-MM-DD'
+  // Parse that date as UTC midnight, then adjust for timezone offset
+  const [year, month, day] = localDateStr.split("-").map(Number);
+  // Build a date at midnight in the shop's timezone using Intl
+  const midnight = new Date(`${localDateStr}T00:00:00`);
+  // Get the offset between UTC and the target timezone at that moment
+  const utcDate = new Date(
+    Date.UTC(year, month - 1, day, 0, 0, 0) -
+      getTimezoneOffsetMs(TZ, new Date(Date.UTC(year, month - 1, day))),
+  );
+  return utcDate;
+};
+
+/**
+ * Returns timezone offset in milliseconds for a given timezone at a given date.
+ */
+const getTimezoneOffsetMs = (tz, date) => {
+  const utcStr = date.toLocaleString("en-US", { timeZone: "UTC" });
+  const tzStr = date.toLocaleString("en-US", { timeZone: tz });
+  return new Date(utcStr) - new Date(tzStr);
 };
 
 const daysAgo = (n) => {
@@ -18,16 +46,14 @@ const daysAgo = (n) => {
 export const dashboardService = {
   /**
    * Main dashboard stats — cached for 60s.
-   * Runs parallel aggregations for max speed.
    */
   async getStats() {
     const cached = cacheService.get(CACHE_KEYS.DASHBOARD_STATS);
     if (cached) return cached;
 
-    const today = startOfToday();
+    const today = startOfTodayInTZ();
 
     const [todayStats, pendingCount, issueFrequency] = await Promise.all([
-      // Today's repairs: count + revenue + profit
       Repair.aggregate([
         { $match: { createdAt: { $gte: today } } },
         {
@@ -40,19 +66,12 @@ export const dashboardService = {
         },
       ]),
 
-      // Pending = received + in-progress
       Repair.countDocuments({
         status: { $in: ["received", "in-progress"] },
       }),
 
-      // Most common issues (top 5) with percentages
       Repair.aggregate([
-        {
-          $group: {
-            _id: "$issue",
-            count: { $sum: 1 },
-          },
-        },
+        { $group: { _id: "$issue", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 5 },
       ]),
@@ -85,8 +104,8 @@ export const dashboardService = {
   },
 
   /**
-   * Last 7 days trends — repairs per day + revenue per day.
-   * Uses $dateToString to group by calendar day.
+   * Last 7 days trends — timezone-aware grouping.
+   * Uses MongoDB $dateToString with timezone so days align with the shop's local time.
    */
   async getTrends() {
     const cached = cacheService.get(CACHE_KEYS.DASHBOARD_TRENDS);
@@ -99,7 +118,12 @@ export const dashboardService = {
       {
         $group: {
           _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+            // timezone parameter ensures days are grouped by LOCAL date, not UTC date
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+              timezone: TZ,
+            },
           },
           repairs: { $sum: 1 },
           revenue: { $sum: "$price" },
@@ -118,16 +142,11 @@ export const dashboardService = {
       },
     ]);
 
-    // Fill in days with no repairs so the chart has no gaps
     const result = fillMissingDays(trends, 7);
-
     cacheService.set(CACHE_KEYS.DASHBOARD_TRENDS, result, 60);
     return result;
   },
 
-  /**
-   * Recent activity feed — last 20 events, no caching (always fresh).
-   */
   async getActivity(limit = 20) {
     const cached = cacheService.get(CACHE_KEYS.DASHBOARD_ACTIVITY);
     if (cached) return cached;
@@ -142,10 +161,6 @@ export const dashboardService = {
   },
 };
 
-/**
- * Ensures every day in the last N days appears in the chart data,
- * even if no repairs occurred that day (prevents chart gaps).
- */
 function fillMissingDays(trends, days) {
   const map = new Map(trends.map((t) => [t.date, t]));
   const result = [];
@@ -153,7 +168,8 @@ function fillMissingDays(trends, days) {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
+    // Use local date string in the shop's timezone for consistent labels
+    const dateStr = d.toLocaleDateString("en-CA", { timeZone: TZ });
     result.push(
       map.get(dateStr) || { date: dateStr, repairs: 0, revenue: 0, profit: 0 },
     );

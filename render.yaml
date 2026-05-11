@@ -3,7 +3,7 @@ services:
     name: repair-dashboard
     env: node
     region: oregon
-    buildCommand: npm run install:all && npm run build
+    buildCommand: cd server && npm install && cd ../client && npm install --include=dev && npm run build && cd ..
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -11,6 +11,8 @@ services:
         value: production
       - key: DEPLOYMENT_TARGET
         value: render
+      - key: SERVER_TZ
+        value: America/New_York
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET

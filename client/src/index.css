@@ -45,6 +45,11 @@
       color 0.2s ease;
   }
 
+  /* Safe area for iPhone home indicator — bottom nav sits above it */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   /* Light mode — override Tailwind gray text classes to use dark text */
   .theme-light .text-gray-100 {
     color: #111827;

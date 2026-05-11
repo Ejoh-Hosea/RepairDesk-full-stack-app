@@ -13,19 +13,16 @@ import RepairForm from "../components/repairs/RepairForm.jsx";
 
 export default function ProtectedLayout() {
   const dispatch = useDispatch();
-
-  const { isAuthenticated, bootstrapped, loading } = useSelector((s) => s.auth);
-
+  const { isAuthenticated, bootstrapped } = useSelector((s) => s.auth);
   const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // ✅ run ONLY once
+  // Try restoring session on first load (refresh token in httpOnly cookie)
   useEffect(() => {
-    dispatch(fetchMe());
-  }, [dispatch]);
+    if (!bootstrapped) dispatch(fetchMe());
+  }, [bootstrapped, dispatch]);
 
-  // ⏳ wait until auth check finishes
-  if (!bootstrapped || loading) {
+  if (!bootstrapped) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -33,14 +30,12 @@ export default function ProtectedLayout() {
     );
   }
 
-  // ❌ not authenticated → redirect
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   const handleAddRepair = async (data) => {
     setCreating(true);
     await dispatch(createRepair(data));
+    // Refresh dashboard stats after new repair
     dispatch(fetchDashboardStats());
     dispatch(fetchActivity());
     setCreating(false);
@@ -50,7 +45,8 @@ export default function ProtectedLayout() {
   return (
     <div className="min-h-screen bg-surface">
       <Navbar onAddRepair={() => setAddOpen(true)} />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      {/* pb-20 on mobile accounts for the fixed bottom tab bar height */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-6">
         <Outlet />
       </main>
 
