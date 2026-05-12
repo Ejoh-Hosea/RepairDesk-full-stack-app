@@ -230,7 +230,6 @@ export default function UsersPage() {
     dispatch(fetchUsers());
   }, [dispatch]);
 
-  // Auto-clear success message after 3s
   useEffect(() => {
     if (!successMsg) return;
     const t = setTimeout(() => setSuccessMsg(""), 3000);
@@ -334,60 +333,119 @@ export default function UsersPage() {
               return (
                 <div
                   key={user._id}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-surface-hover/30 transition-colors group"
+                  className="px-5 py-4 hover:bg-surface-hover/30 transition-colors group"
                 >
-                  <Avatar username={user.username} />
+                  {/* ── Desktop: single row ───────────────────────────── */}
+                  <div className="hidden sm:flex items-center gap-4">
+                    <Avatar username={user.username} />
 
-                  {/* Name + meta */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-200 text-sm">
-                        {user.username}
-                      </span>
-                      {isCurrentUser && (
-                        <span className="text-xs text-gray-600 font-mono">
-                          (you)
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-200 text-sm">
+                          {user.username}
                         </span>
+                        {isCurrentUser && (
+                          <span className="text-xs text-gray-600 font-mono">
+                            (you)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Joined {formatDate(user.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      {isCurrentUser ? (
+                        <RoleBadge role={user.role} />
+                      ) : (
+                        <button
+                          onClick={() => handleRoleToggle(user)}
+                          title={`Click to change to ${user.role === "admin" ? "technician" : "admin"}`}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <RoleBadge role={user.role} />
+                        </button>
                       )}
                     </div>
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      Joined {formatDate(user.createdAt)}
-                    </p>
-                  </div>
 
-                  {/* Role badge — clickable to toggle (except your own) */}
-                  <div className="flex-shrink-0">
-                    {isCurrentUser ? (
-                      <RoleBadge role={user.role} />
-                    ) : (
-                      <button
-                        onClick={() => handleRoleToggle(user)}
-                        title={`Click to change to ${user.role === "admin" ? "technician" : "admin"}`}
-                        className="hover:opacity-70 transition-opacity"
-                      >
-                        <RoleBadge role={user.role} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Actions — only visible on hover */}
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setResetTarget(user)}
-                    >
-                      Reset pwd
-                    </Button>
-                    {!isCurrentUser && (
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                       <Button
                         size="sm"
-                        variant="danger"
-                        onClick={() => setDeleteTarget(user)}
+                        variant="secondary"
+                        onClick={() => setResetTarget(user)}
                       >
-                        Delete
+                        Reset pwd
                       </Button>
-                    )}
+                      {!isCurrentUser && (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => setDeleteTarget(user)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Mobile: stacked layout ────────────────────────── */}
+                  <div className="flex sm:hidden items-start gap-3">
+                    <Avatar username={user.username} />
+
+                    <div className="flex-1 min-w-0">
+                      {/* Row 1 — name + role badge on opposite ends */}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium text-gray-200 text-sm truncate">
+                            {user.username}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="text-xs text-gray-600 font-mono flex-shrink-0">
+                              (you)
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          {isCurrentUser ? (
+                            <RoleBadge role={user.role} />
+                          ) : (
+                            <button
+                              onClick={() => handleRoleToggle(user)}
+                              title={`Click to change to ${user.role === "admin" ? "technician" : "admin"}`}
+                              className="hover:opacity-70 transition-opacity"
+                            >
+                              <RoleBadge role={user.role} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 2 — joined date */}
+                      <p className="text-xs text-gray-600 mb-2">
+                        Joined {formatDate(user.createdAt)}
+                      </p>
+
+                      {/* Row 3 — action buttons, always visible on mobile */}
+                      {!isCurrentUser && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setResetTarget(user)}
+                          >
+                            Reset pwd
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setDeleteTarget(user)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
